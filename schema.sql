@@ -1,0 +1,15 @@
+-- schema.sql
+
+CREATE DATABASE IF NOT EXISTS crud_mahasiswa CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE crud_mahasiswa;
+
+CREATE TABLE IF NOT EXISTS mahasiswa (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nama VARCHAR(150) NOT NULL,
+  nim VARCHAR(30) NOT NULL UNIQUE,
+  prodi VARCHAR(100) NOT NULL,
+  angkatan INT NOT NULL,
+  foto_path VARCHAR(255) DEFAULT NULL,
+  status ENUM('aktif','nonaktif') NOT NULL DEFAULT 'aktif',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
