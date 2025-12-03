@@ -1,24 +1,29 @@
 <?php
 // class/Database.php
+
 class Database {
-    public PDO $conn;
+    private PDO $conn;
 
     public function __construct() {
         $this->connect();
     }
 
-    public function connect(): ?PDO {
+    private function connect(): void {
         try {
+            // Gunakan konstanta dari config.php
             $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
             $this->conn = new PDO($dsn, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
-            return $this->conn;
         } catch (PDOException $e) {
-            // tampilkan pesan singkat (untuk pengembangan)
-            echo "Database connection failed: " . $e->getMessage();
-            exit;
+            // Bisa diganti dengan logging ke file log
+            throw new RuntimeException("Database connection failed: " . $e->getMessage());
         }
     }
+
+    public function getConnection(): PDO {
+        return $this->conn;
+    }
 }
+
