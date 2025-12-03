@@ -1,14 +1,21 @@
 <?php
 // class/Utility.php
 
+require_once __DIR__ . '/../config/config.php'; // Pastikan semua konstanta tersedia
+
 class Utility {
-    public static function redirect(string $url) {
-        // support BASE_URL (may be empty)
-        header('Location: ' . BASE_URL . $url);
+    public static function redirect(string $url): void {
+        // support BASE_URL (may be kosong)
+        $base = defined('BASE_URL') ? BASE_URL : '';
+        header('Location: ' . rtrim($base, '/') . '/' . ltrim($url, '/'));
         exit;
     }
 
-    public static function flash(string $key, ?string $message = null) {
+    public static function flash(string $key, ?string $message = null): ?string {
+        if (!isset($_SESSION)) {
+            session_start(); // pastikan session aktif
+        }
+
         if ($message === null) {
             // get and clear
             if (isset($_SESSION['flash'][$key])) {
@@ -18,17 +25,23 @@ class Utility {
             }
             return null;
         }
+
         $_SESSION['flash'][$key] = $message;
+        return null;
     }
 
-    public static function sanitize($value) {
+    public static function sanitize($value): string {
         return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
     }
 
     // file upload helper: returns ['success' => bool, 'path' => ..., 'error' => ...]
     public static function handleUpload(array $file, ?string $oldPath = null): array {
+        // Validasi konstanta
+        $maxSize = defined('UPLOAD_MAX_SIZE') ? UPLOAD_MAX_SIZE : 2 * 1024 * 1024;
+        $allowedTypes = defined('UPLOAD_ALLOWED') ? UPLOAD_ALLOWED : ['image/jpeg', 'image/png'];
+        $uploadDir = defined('UPLOAD_DIR') ? UPLOAD_DIR : __DIR__ . '/../public/uploads/';
+
         if (!isset($file) || $file['error'] === UPLOAD_ERR_NO_FILE) {
-            // no new file uploaded
             return ['success' => true, 'path' => $oldPath ?? null, 'error' => null];
         }
 
@@ -36,7 +49,7 @@ class Utility {
             return ['success' => false, 'error' => 'Upload error code: ' . $file['error']];
         }
 
-        if ($file['size'] > UPLOAD_MAX_SIZE) {
+        if ($file['size'] > $maxSize) {
             return ['success' => false, 'error' => 'File terlalu besar (maks 2MB).'];
         }
 
@@ -44,35 +57,33 @@ class Utility {
         $mime = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
 
-        if (!in_array($mime, UPLOAD_ALLOWED)) {
+        if (!in_array($mime, $allowedTypes)) {
             return ['success' => false, 'error' => 'Tipe file tidak diperbolehkan (hanya JPG/PNG).'];
         }
 
-        // memastikan upload dir ada
-        if (!is_dir(UPLOAD_DIR)) {
-            mkdir(UPLOAD_DIR, 0755, true);
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
         }
 
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $safeName = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-        $dest = UPLOAD_DIR . $safeName;
+        $dest = rtrim($uploadDir, '/') . '/' . $safeName;
 
         if (!move_uploaded_file($file['tmp_name'], $dest)) {
             return ['success' => false, 'error' => 'Gagal memindahkan file.'];
         }
 
-        // optional: hapus file lama
+        // Hapus file lama jika ada
         if ($oldPath) {
-            $oldFull = realpath(UPLOAD_DIR . '..') ? $oldPath : null; // noop - we will attempt delete based on stored path
-            // Try best-effort delete: oldPath stores relative 'uploads/...' or basename
-            $possible = rtrim(UPLOAD_DIR, '/') . '/' . basename($oldPath);
-            if (file_exists($possible)) {
-                @unlink($possible);
+            $oldFile = rtrim($uploadDir, '/') . '/' . basename($oldPath);
+            if (file_exists($oldFile)) {
+                @unlink($oldFile);
             }
         }
 
-        // return relative path to store in DB (so project portable)
+        // Simpan path relatif untuk database
         $relative = 'uploads/' . $safeName;
         return ['success' => true, 'path' => $relative, 'error' => null];
     }
 }
+
