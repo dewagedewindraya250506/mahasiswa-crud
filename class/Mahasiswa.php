@@ -1,70 +1,71 @@
 <?php
 // class/Mahasiswa.php
-
 class Mahasiswa {
     protected Database $db;
     protected PDO $conn;
 
     public function __construct() {
         $this->db = new Database();
-        $this->conn = $this->db->conn;
+        $this->conn = $this->db->getConnection();
     }
 
-    // create
+    // Create
     public function create(array $data): bool {
-        $sql = "INSERT INTO mahasiswa (nama, nim, prodi, angkatan, foto_path, status) 
+        $sql = "INSERT INTO mahasiswa (nama, nim, prodi, angkatan, foto_path, status)
                 VALUES (:nama, :nim, :prodi, :angkatan, :foto_path, :status)";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([
-            ':nama' => $data['nama'],
-            ':nim' => $data['nim'],
-            ':prodi' => $data['prodi'],
-            ':angkatan' => $data['angkatan'],
+            ':nama'      => $data['nama'],
+            ':nim'       => $data['nim'],
+            ':prodi'     => $data['prodi'],
+            ':angkatan'  => (int)$data['angkatan'],
             ':foto_path' => $data['foto_path'] ?? null,
-            ':status' => $data['status'],
+            ':status'    => $data['status'],
         ]);
     }
 
-    // read all
+    // Read all
     public function getAll(): array {
         $sql = "SELECT * FROM mahasiswa ORDER BY id ASC";
         $stmt = $this->conn->query($sql);
         return $stmt->fetchAll();
     }
 
-    // read by id
+    // Read by ID
     public function getById(int $id): ?array {
         $sql = "SELECT * FROM mahasiswa WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
-        return $row ? $row : null;
+        return $row ?: null;
     }
 
-    // update
+    // Update
     public function update(int $id, array $data): bool {
-        $sql = "UPDATE mahasiswa SET nama = :nama, nim = :nim, prodi = :prodi, angkatan = :angkatan, 
-                foto_path = :foto_path, status = :status WHERE id = :id";
+        $sql = "UPDATE mahasiswa 
+                SET nama = :nama, nim = :nim, prodi = :prodi, angkatan = :angkatan, 
+                    foto_path = :foto_path, status = :status 
+                WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([
-            ':nama' => $data['nama'],
-            ':nim' => $data['nim'],
-            ':prodi' => $data['prodi'],
-            ':angkatan' => $data['angkatan'],
+            ':nama'      => $data['nama'],
+            ':nim'       => $data['nim'],
+            ':prodi'     => $data['prodi'],
+            ':angkatan'  => (int)$data['angkatan'],
             ':foto_path' => $data['foto_path'] ?? null,
-            ':status' => $data['status'],
-            ':id' => $id
+            ':status'    => $data['status'],
+            ':id'        => $id
         ]);
     }
 
-    // delete
+    // Delete
     public function delete(int $id): bool {
         $sql = "DELETE FROM mahasiswa WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([':id' => $id]);
     }
 
-    // optional: search by nim or nama (not required but handy)
+    // Search
     public function search(string $q): array {
         $sql = "SELECT * FROM mahasiswa WHERE nama LIKE :q OR nim LIKE :q ORDER BY id ASC";
         $stmt = $this->conn->prepare($sql);
